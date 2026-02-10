@@ -19,7 +19,7 @@ export default function Home() {
       </div>
       
       {/* Input area fixed at bottom */}
-      <div className="w-full flex-shrink-0">
+      <div className="w-full shrink-0">
         <InputArea />
       </div>
     </main>
