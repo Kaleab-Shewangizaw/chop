@@ -1,16 +1,13 @@
-import { Sparkles, Share2, Scissors, Linkedin, Check,  Youtube,  Image, Link } from "lucide-react";
-
+import { Sparkles, Share2, Scissors, Linkedin, Check, Youtube, Image, Link } from "lucide-react";
 import { FaXTwitter } from "react-icons/fa6";
 import { GiSoundWaves } from "react-icons/gi";
 import { GrDocument, GrReddit } from "react-icons/gr";
 
-
 export default function Hero() {
   return (
-    <div className="flex flex-col items-center gap-5 w-full  min-h-[72vh] -pb-10 h-auto   overflow-hidden">
+    <div className="flex flex-col items-center  w-full min-h-[60vh] h-auto overflow-hidden pt-0">
       
-      
-      <div className="flex-1 w-full max-h-[70%] relative  ">
+      <div className="flex-1  w-full   relative">
         
         {/* Card 1: The Input (Left - Rotate 6) */}
         <div className="absolute -rotate-6 top-24 left-[23%] 
@@ -103,23 +100,19 @@ export default function Hero() {
                     <Youtube size={32} className="text-white/70"  />
                     <div className="h-1.5 w-full bg-red-600/20 rounded" />
                 </div>
-
-                
-                
             </div>
         </div>
 
       </div>
 
-    
-      <div className="pb- pt-1  px-4 relative z-20  text-left">
-        <h1 className="text-5xl md:text-3xl font-black tracking-tighter text-white mb-4">
+      {/* Hero text section - moved up slightly */}
+      <div className="pb-   px-4 relative z-20 text-left ">
+        <h1 className="text-5xl  md:text-3xl font-black tracking-tighter text-white mb-4">
             CHOP.
         </h1>
         <p className="text-xl md:text-xl text-gray-400 max-w-2xl mx-auto font-medium">
             Turn long-form ideas into <span className="text-white underline underline-offset-8 decoration-white/30">viral social threads</span> in seconds.
         </p>
-       
       </div>
     </div>
   );
