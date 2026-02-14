@@ -3,6 +3,7 @@ import { generatePosts, type Platform } from "@/lib/generatePost";
 import { extractTextFromFile } from "@/lib/extractText";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type RequestBody = {
   text?: string;
@@ -95,15 +96,21 @@ export async function POST(req: Request) {
       ? crypto.randomUUID()
       : `req_${Date.now()}`;
 
-    return NextResponse.json({
-      success: true,
-      requestId,
-      posts,
-      sourceTextLength: text.length,
-      platformsUsed: platforms,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        requestId,
+        posts,
+        sourceTextLength: text.length,
+        platformsUsed: platforms,
+      },
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store" },
+      }
+    );
   } catch (err) {
-    console.error("[POST /api/generate]", err);
+    console.error("[POST /api/process-input]", err);
     return NextResponse.json(
       { error: "Internal server error", details: err instanceof Error ? err.message : undefined },
       { status: 500 }
@@ -117,5 +124,5 @@ export async function OPTIONS() {
 }
 
 export async function GET() {
-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+  return NextResponse.json({ ok: true, hint: "Use POST to generate posts" }, { status: 200 });
 }
