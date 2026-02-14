@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generatePosts, type Platform } from "@/lib/generatePost";
 import { extractTextFromFile } from "@/lib/extractText";
+export const runtime = "nodejs";
 
 type RequestBody = {
   text?: string;

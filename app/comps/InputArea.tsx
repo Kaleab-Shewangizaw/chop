@@ -25,10 +25,9 @@ type StoredEntry = {
     createdAt: number;
 };
 
-export default function InputArea() {
+export default function InputArea({ result, setResult }: { result: any[] | null; setResult: (results: any[] | null) => void }) {
     const [selected, setSelected] = useState<string[]>([]);
     const [text, setText] = useState("");
-    const [result, setResult] = useState<any>(null);
     const [requestId, setRequestId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -55,6 +54,7 @@ export default function InputArea() {
     }>>([]);
     const attachmentsRef = useRef<typeof attachments>(attachments);
     const searchParams = useSearchParams();
+    const idParam = searchParams.get("id");
 
     const selectedPlatforms = useMemo(() => selected, [selected]);
 
@@ -328,10 +328,12 @@ export default function InputArea() {
 
     const handleSubmit = async () => {
         setError(null);
+
         if (!selectedPlatforms.length) {
             setError("Select at least one platform");
             return;
         }
+
         if (!text.trim() && attachments.length === 0) {
             setError("Add text or attachments");
             return;
@@ -352,25 +354,37 @@ export default function InputArea() {
             });
 
             const data = await res.json();
+            console.log("API response", data);
             if (!res.ok) {
                 throw new Error(data?.error || "Request failed");
             }
 
             const rid = data.requestId || crypto.randomUUID();
             setRequestId(rid);
-            setResult(data.posts || data.results || data);
+
+            const payload = data.posts || data.results || data;
+            setResult(payload);
 
             // Persist to localStorage
             const entry: StoredEntry = {
                 id: rid,
                 request: { text, platforms: selectedPlatforms },
-                response: data.posts || data.results || data,
+                response: payload,
                 createdAt: Date.now(),
             };
+
             const raw = localStorage.getItem("chopHistory");
             const parsed: StoredEntry[] = raw ? JSON.parse(raw) : [];
             const next = [entry, ...parsed.filter((e) => e.id !== entry.id)].slice(0, 50);
             localStorage.setItem("chopHistory", JSON.stringify(next));
+
+            // Clear input and attachments after success
+            setText("");
+            setAttachments((prev) => {
+                prev.forEach((item) => item.url && URL.revokeObjectURL(item.url));
+                return [];
+            });
+
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong");
         } finally {
@@ -378,15 +392,32 @@ export default function InputArea() {
         }
     };
 
+    // When there is no id in the URL, reset the input surface to a fresh state
+    useEffect(() => {
+        if (idParam) return;
+
+        setText("");
+        setSelected([]);
+        setAttachments((prev) => {
+            prev.forEach((item) => item.url && URL.revokeObjectURL(item.url));
+            return [];
+        });
+        setRequestId(null);
+        setError(null);
+        setVoiceFinalText("");
+        setVoiceInterimText("");
+        setShowVoice(false);
+        setResult(null);
+    }, [idParam, setResult]);
+
     // Load saved entry by id from URL
     useEffect(() => {
-        const id = searchParams.get("id");
-        if (!id) return;
+        if (!idParam) return;
         const raw = typeof window !== "undefined" ? localStorage.getItem("chopHistory") : null;
         if (!raw) return;
         try {
             const parsed: StoredEntry[] = JSON.parse(raw);
-            const found = parsed.find((e) => e.id === id);
+            const found = parsed.find((e) => e.id === idParam);
             if (found) {
                 setText(found.request.text);
                 setSelected(found.request.platforms);
@@ -396,19 +427,19 @@ export default function InputArea() {
         } catch {
             // ignore parsing errors
         }
-    }, [searchParams]);
+    }, [idParam, setResult]);
 
     return (
-        <div className="  flex flex-col w-full max-w-3xl mx-auto px-4 bg-transparent z-20">
+        <div className="  flex flex-col  relative w-full max-w-4xl pt-2 mx-auto px-4 bg-transparent z-20 ">
             
-            <div className=" flex justify-between  items-end py-2 bg-transparent">
+            <div className={`flex justify-between absolute ${attachments.length > 0 ? "-top-22" : "-top-12"} right-1   w-full px-3 pl-6 items-end py-2 bg-transparent`}>
                 
                     
-                    <div className="flex flex-1   justify-end gap-2 max-w-[80%]">
+                    <div className="flex flex-1   justify-end gap-2 max-w-[80%] ">
                         {attachments.map((item) => (
                             <div
                                 key={item.id}
-                                className="relative w-20 h-20 rounded-md overflow-hidden border border-gray-700 bg-gray-800 flex items-center justify-center"
+                                className="relative w-20 h-20 rounded-md overflow-hidden border-gray-700 bg-gray-800 flex items-center justify-center"
                             >
                                 {item.kind === "image" && item.url ? (
                                     <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
@@ -506,7 +537,7 @@ export default function InputArea() {
                     ref={textareaRef}
                     minRows={1}
                     maxRows={6} // Fixed max rows to prevent going off screen
-                    placeholder="Paste your content here..." 
+                    placeholder="Paste your content here..."
                     className="w-full p-4 focus:outline-none resize-none bg-transparent"
                     value={text}
                     onChange={(e) => setText(e.target.value)}
@@ -582,25 +613,7 @@ export default function InputArea() {
             {!speechSupported && (
                 <div className="mt-2 text-xs text-yellow-400">Voice input not supported in this browser. Use Chrome/Edge on https or localhost.</div>
             )}
-            {result && (
-                <div className="mt-4 w-full rounded-lg bg-gray-900 border border-gray-800 p-4 text-sm overflow-x-auto">
-                    <div className="flex items-center justify-between mb-2 text-gray-300">
-                        <span>Result {requestId ? `(id: ${requestId})` : ""}</span>
-                        <Button
-                            variant="outline"
-                            className="h-8 px-3 text-xs bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
-                            onClick={() => {
-                                navigator.clipboard.writeText(JSON.stringify(result, null, 2)).catch(() => {});
-                            }}
-                        >
-                            Copy JSON
-                        </Button>
-                    </div>
-                    <pre className="whitespace-pre-wrap wrap-break-words text-gray-200 text-xs">
-                        {JSON.stringify(result, null, 2)}
-                    </pre>
-                </div>
-            )}
+           
 
             {showVoice && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
@@ -630,11 +643,11 @@ export default function InputArea() {
                             </div>
                         </div>
                         <div className="flex justify-end gap-2">
-                            <Button variant="outline" className="border-gray-700 text-gray-200" onClick={cancelVoice}>
+                            <Button variant="ghost" className="border-gray-700 text-gray-200 hover:bg-transparent hover:text-red-300 cursor-pointer" onClick={cancelVoice}>
                                 Cancel
                             </Button>
                             <Button
-                                className="bg-blue-600 hover:bg-blue-700"
+                                className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
                                 onClick={commitVoice}
                                 disabled={!(voiceFinalText.trim() || voiceInterimText.trim())}
                             >
