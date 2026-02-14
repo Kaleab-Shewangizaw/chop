@@ -1,6 +1,6 @@
 "use client";
 
-import { History, Trash2Icon } from "lucide-react";
+import { Github, History, Trash2Icon } from "lucide-react";
 import Hero from "./comps/Hero";
 import InputArea from "./comps/InputArea";
 import ResultDisplay from "./comps/ResultDisplay";
@@ -107,7 +107,7 @@ export default function Home() {
   return (
     <>
       {/* 📱 Mobile View */}
-      <main className="flex xl:hidden h-screen items-center justify-center text-white bg-[#1a222a] px-6 text-center">
+      <main className="flex xl:hidden relative h-screen items-center justify-center text-white bg-[#1a222a] px-6 text-center">
         <div className="space-y-4">
           <h1 className="text-2xl font-semibold">Desktop Required</h1>
           <p className="text-white/60">
@@ -116,29 +116,61 @@ export default function Home() {
             Mobile and tablet support is coming soon.
           </p>
         </div>
+
+        <Button
+          asChild
+          className="absolute bottom-5 right-5 border border-gray-600 text-white/50 hover:text-white transition-all duration-300"
+        >
+          <a
+            href="https://github.com/Kaleab-Shewangizaw/chop"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Github />
+          </a>
+        </Button>
       </main>
 
       {/* 💻 Desktop View */}
       <main className="hidden xl:flex h-screen max-h-screen flex-col text-white items-center pb-5 bg-[#1a222a] justify-start overflow-hidden">
-        <div className="h-4 flex p-4 px-10 justify-between z-100 w-full">
-          {/* i want to display a new page with out the queries if localhost:3000?id_12344 when clicked it goes to the main url localhost:3000  */}
-          <h1 className="font-medium text-xl cursor-pointer" onClick={() => {setResult(null); router.push("/") }}>Chop.</h1>
-
-          <Button
-            className="cursor-pointer border border-gray-400  text-white/50 hover:text-white transition-all duration-300"
-            onClick={openHistory}
+        <div className="h-16 flex px-10 justify-between items-center w-full z-10">
+          {/* Reset page & remove queries */}
+          <h1
+            className="font-medium text-xl cursor-pointer"
+            onClick={() => {
+              setResult(null);
+              router.push("/");
+            }}
           >
-            <History />
-          </Button>
+            Chop.
+          </h1>
+
+          <div className="flex items-center gap-2">
+            <Button
+              className="cursor-pointer border border-gray-400 text-white/50 hover:text-white transition-all duration-300"
+              onClick={openHistory}
+            >
+              <History />
+            </Button>
+
+            <Button
+              asChild
+              className="border border-gray-400 text-white/50 hover:text-white transition-all duration-300"
+            >
+              <a
+                href="https://github.com/Kaleab-Shewangizaw/chop"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Github />
+              </a>
+            </Button>
+          </div>
         </div>
 
         {/* Hero section */}
         <div className="flex-1 w-full overflow-y-auto">
-          {result ? (
-            <ResultDisplay results={result} />
-          ) : (
-            <Hero />
-          )}
+          {result ? <ResultDisplay results={result} /> : <Hero />}
         </div>
 
         {/* Input area */}
