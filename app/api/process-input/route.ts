@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generatePosts, type Platform } from "@/lib/generatePost";
 import { extractTextFromFile } from "@/lib/extractText";
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type RequestBody = {
   text?: string;
@@ -108,4 +109,13 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+// Graceful handling for preflight / accidental GETs in production (avoids 405s surfacing to users).
+export async function OPTIONS() {
+  return NextResponse.json({ ok: true }, { status: 200 });
+}
+
+export async function GET() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }
