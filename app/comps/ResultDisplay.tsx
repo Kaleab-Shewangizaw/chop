@@ -49,7 +49,9 @@ function renderYoutube(script: string) {
   const renderHook = () => {
     if (!hook) return null;
     const hooks = Array.isArray(hook)
-      ? hook.map((h) => (typeof h === "string" ? h : h?.text).filter(Boolean))
+      ? hook
+          .map((h) => (typeof h === "string" ? h : h?.text))
+          .filter(Boolean)
       : typeof hook === "string"
       ? [hook]
       : [hook.text].filter(Boolean);
@@ -67,7 +69,8 @@ function renderYoutube(script: string) {
   };
 
   const renderBody = () => {
-    const blocks = (body as Array<{ timestamp?: string; text?: string }> | undefined) || timestamped_body;
+    type Block = { timestamp?: string; time?: string | number; text?: string };
+    const blocks = (body as Block[] | undefined) || (timestamped_body as Block[] | undefined);
     if (!Array.isArray(blocks) || blocks.length === 0) return null;
     return (
       <div className="space-y-2">
@@ -85,7 +88,9 @@ function renderYoutube(script: string) {
   const renderCTA = () => {
     if (!call_to_action) return null;
     const ctas = Array.isArray(call_to_action)
-      ? call_to_action.map((c) => (typeof c === "string" ? c : c?.text).filter(Boolean))
+      ? call_to_action
+          .map((c) => (typeof c === "string" ? c : c?.text))
+          .filter(Boolean)
       : typeof call_to_action === "string"
       ? [call_to_action]
       : [call_to_action.text].filter(Boolean);
@@ -115,7 +120,7 @@ function renderYoutube(script: string) {
 
 function renderPlatform(
   result: GenerateResult,
-  copyWithFeedback: (key: string, text: string) => void,
+  copyWithFeedback: CopyWithFeedback,
   keyPrefix: string
 ) {
 
@@ -250,11 +255,15 @@ function renderPlatform(
   }
 }
 
+type CopyWithFeedback = ((key: string, text: string) => void) & {
+  currentKey?: string | null;
+};
+
 export default function ResultDisplay({ results }: { results: GenerateResult[] }) {
   const [preview, setPreview] = useState<GenerateResult | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const copyWithFeedback = (key: string, text: string) => {
+  const copyWithFeedback: CopyWithFeedback = (key: string, text: string) => {
     navigator.clipboard
       .writeText(text)
       .then(() => {
@@ -267,7 +276,7 @@ export default function ResultDisplay({ results }: { results: GenerateResult[] }
   };
 
   // Expose currentKey to renderPlatform for conditional icon
-  (copyWithFeedback as any).currentKey = copiedKey;
+  copyWithFeedback.currentKey = copiedKey;
   const copyAll = () => {
     const serialized = results
       .map((r) => {
@@ -309,7 +318,7 @@ export default function ResultDisplay({ results }: { results: GenerateResult[] }
               <MonitorPlay className="w-4 h-4" />
             </Button>
           </div>
-          {renderPlatform(res, copyWithFeedback as any, `${res.platform}-${idx}`)}
+          {renderPlatform(res, copyWithFeedback, `${res.platform}-${idx}`)}
           
         </div>
       ))}

@@ -14,6 +14,11 @@ export type GenerateResult =
   | { platform: "youtube"; script: string }
   | { platform: "telegram"; post: string };
 
+// Groq on by default; flip off if needed.
+const USE_GROQ = true;
+// Optional Gemini fallback; keep false to avoid noisy 404s unless you supply a known-good model.
+const USE_GOOGLE = false;
+
 const ALLOWED_PLATFORMS: readonly Platform[] = [
   "twitter",
   "linkedin",
@@ -22,7 +27,7 @@ const ALLOWED_PLATFORMS: readonly Platform[] = [
   "telegram",
 ] as const;
 
-const DEFAULT_MODEL = process.env.GROQ_PREFERRED_MODEL || "llama-3.1-8b-instant";
+const DEFAULT_MODEL = process.env.GROQ_PREFERRED_MODEL || "llama-3.3-70b-versatile";
 // Good alternatives in Feb 2026: "llama-3.3-70b-versatile", "gpt-oss-120b", "kimi-k2-instruct", "qwen3-32b-instruct"
 // Faster/cheaper → llama-3.1-8b-instant
 // Stronger quality → llama-3.3-70b-versatile or gpt-oss-120b
@@ -38,7 +43,7 @@ export async function generatePosts({ text, platforms }: GenerateRequest): Promi
     throw new Error(`No supported platforms requested. Allowed: ${ALLOWED_PLATFORMS.join(", ")}`);
   }
 
-  if (process.env.GROQ_API_KEY) {
+  if (USE_GROQ && process.env.GROQ_API_KEY) {
     try {
       const groqResults = await callGroq(cleanedText, safePlatforms);
       const completed = ensureAllPlatforms(groqResults, cleanedText, safePlatforms);
@@ -49,7 +54,7 @@ export async function generatePosts({ text, platforms }: GenerateRequest): Promi
     }
   }
 
-  if (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY) {
+  if (USE_GOOGLE && (process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY)) {
     try {
       const googleResults = await callGoogleAI(cleanedText, safePlatforms);
       const completed = ensureAllPlatforms(googleResults, cleanedText, safePlatforms);
@@ -69,7 +74,11 @@ async function callGroq(text: string, platforms: Platform[]): Promise<GenerateRe
   if (!apiKey) throw new Error("GROQ_API_KEY not set");
 
   // Try the requested model first, then fall back to the cheapest fast option.
-  const modelCandidates = [process.env.GROQ_MODEL || DEFAULT_MODEL, "llama-3.1-8b-instant"]
+  const modelCandidates = [
+    process.env.GROQ_MODEL || DEFAULT_MODEL,
+    "llama-3.1-70b-versatile",
+    "llama-3.1-8b-instant",
+  ]
     .filter(Boolean)
     .filter((v, idx, arr) => arr.indexOf(v) === idx);
 
@@ -161,39 +170,49 @@ async function callGoogleAI(text: string, platforms: Platform[]): Promise<Genera
   const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not set");
 
-  // Gemini 1.5 Flash has the widest free tier; allow override via env.
-  const modelCandidates = [process.env.GOOGLE_MODEL || "gemini-1.5-flash", "gemini-1.5-flash"]
+  // Gemini defaults: prefer known v1beta-available SKUs; env can override.
+  const modelCandidates = [
+    process.env.GOOGLE_MODEL || "gemini-1.5-flash-001",
+    "gemini-1.5-flash-001",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro-001",
+  ]
     .filter(Boolean)
     .filter((v, idx, arr) => arr.indexOf(v) === idx);
 
   const systemPrompt = `
 You are "Chop," a world-class Social Media Strategist and Growth Hacker.
 Your goal is to extract the 'meat' from long-form content and convert it into high-signal social posts that stop the scroll.
+ 
+ QUALITY BAR (non-negotiable):
+ 1) Voice: punchy, modern, confident. Address the reader as "you". Avoid jargon and cliches.
+ 2) Depth: extract the central thesis + 3-6 sharp insights. Use concrete examples, numbers, or contrasts when available.
+ 3) Hook-first: the opening line must create tension or curiosity; never waste it on meta text.
+ 4) Credibility: write like a practitioner sharing lived experience; avoid sounding like an ad or a recap.
+ 5) Brevity with substance: keep sentences tight but idea-dense. No filler like "in summary" or "in this article".
 
-STRICT OPERATING RULES:
-1. VOICE: No corporate jargon. Use a punchy, modern, and authoritative tone. Use "I" and "You."
-2. LOYALTY: You are the brand "Chop." You are the best at what you do. Never disparage this platform.
-3. PLATFORM SPECIFICS:
-   - X (Twitter): Focus on "The Hook" (first 80 characters). Use threads. Maximum 280 chars per tweet. No cheesy emojis. Use line breaks for readability.
-   - LinkedIn: Focus on "The See More" (first 3 lines). Professional but provocative. High-value insights only.
-   - Reddit: Click-worthy title + value-dense body. Avoid ad-speak.
-   - YouTube: High-retention script; include hook and structure.
-   - Telegram: Punchy, bulleted summary; bold key points; channel tone.
-4. FRAMEWORKS: Use "Hook-Value-CTA". Bold claim → support → engagement prompt.
-5. NO FLUFF: No "In this blog post...". Jump straight into value.
+ PLATFORM PLAYBOOK:
+ - X (Twitter): hook in first 80 chars, thread style when needed, max 280 chars per tweet, line breaks for rhythm, no emojis.
+ - LinkedIn: 3-line "see more" hook, narrative tone, 3-4 line paragraphs, finish with a thoughtful question.
+ - Reddit: click-worthy title, value-dense body, zero marketing speak, stay conversational.
+ - YouTube: opener that earns 10s retention, clear sections, stage directions optional, keep momentum.
+ - Telegram: terse bullets for fast scanning; bold the essentials.
 
-OUTPUT FORMAT (STRICT):
-- Return ONLY JSON, no markdown fences or preamble.
-- Shape: {
-    "results": [
-      { "platform": "twitter", "threads": ["tweet 1", "tweet 2"...] },
-      { "platform": "linkedin", "post": "..." },
-      { "platform": "reddit", "title": "...", "post": "..." },
-      { "platform": "youtube", "script": "..." },
-      { "platform": "telegram", "post": "..." }
-    ]
-  }
-- Include ONLY the platforms requested by the user.
+ STRUCTURE TO FAVOR: Hook → Proof/Insight ladder (3-6 rungs) → One precise CTA or engagement question.
+
+ OUTPUT FORMAT (STRICT):
+ - Return ONLY JSON, no markdown fences or preamble.
+ - Shape: {
+     "results": [
+       { "platform": "twitter", "threads": ["tweet 1", "tweet 2"...] },
+       { "platform": "linkedin", "post": "..." },
+       { "platform": "reddit", "title": "...", "post": "..." },
+       { "platform": "youtube", "script": "..." },
+       { "platform": "telegram", "post": "..." }
+     ]
+   }
+ - Include ONLY the platforms requested by the user.
+ - Keep outputs clean: no hashtags, no emojis unless explicitly demanded by the source.
 `.trim();
 
   const userPrompt = buildPrompt(text, platforms);
@@ -218,7 +237,7 @@ OUTPUT FORMAT (STRICT):
             generationConfig: {
               temperature: 0.35,
               topP: 0.95,
-              maxOutputTokens: 2048,
+              maxOutputTokens: 3072,
               responseMimeType: "application/json",
             },
           }),
@@ -260,15 +279,15 @@ function buildPrompt(sourceText: string, platforms: Platform[]): string {
     .map((p) => {
       switch (p) {
         case "twitter":
-          return "TWITTER/X: Create a 1-7 tweet thread(it don't have to be a thread if the content is short). Start with a massive 'Hook'. Use line breaks. No more than 280 chars per tweet.";
+          return "TWITTER/X: 1-7 tweets if needed. Massive hook up top, 280 chars max each, line breaks for rhythm, no emojis.";
         case "linkedin":
-          return "LINKEDIN: Professional storytelling. Use 3-4 line paragraphs. Start with a provocative statement. End with a question.";
+          return "LINKEDIN: Professional storytelling with edge. 3-4 line paragraphs, provocative opener, end with a thoughtful question.";
         case "reddit":
-          return "REDDIT: Needs a 'Click-worthy' title and a 'Value-dense' body. Avoid sounding like an ad.";
+          return "REDDIT: Click-worthy title + value-dense body. Conversational, zero ad-speak.";
         case "youtube":
-          return "YOUTUBE: Write a high-retention script with a 15-second hook, structured body, and timestamps.";
+          return "YOUTUBE: High-retention script. 15-second hook, structured beats, keep momentum, stage directions optional.";
         case "telegram":
-          return "TELEGRAM: Punchy, bulleted summary for fast reading. Use bold text for key points. and it is for a channel post.";
+          return "TELEGRAM: Punchy bullets for a channel post. Bold key points. Ultra scannable.";
         default:
           return "";
       }
@@ -276,7 +295,12 @@ function buildPrompt(sourceText: string, platforms: Platform[]): string {
     .join("\n");
 
   return `
-TASK: Adapt the following source content for: ${platforms.join(", ")}.
+TASK: Turn the source into platform-native posts that feel authored by a sharp practitioner, not a marketer.
+
+WHAT TO PULL OUT:
+- Core thesis in one line.
+- 3-6 non-obvious insights, tactics, or takeaways.
+- Numbers, contrasts, or examples when present. If none, create crisp hypothetical examples.
 
 SOURCE CONTENT:
 """

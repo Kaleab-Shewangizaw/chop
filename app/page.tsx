@@ -6,7 +6,7 @@ import InputArea from "./comps/InputArea";
 import ResultDisplay from "./comps/ResultDisplay";
 import { Button } from "@/components/ui/button";
 import { GenerateResult } from "@/lib/generatePost";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -143,7 +143,9 @@ export default function Home() {
 
         {/* Input area */}
         <div className="w-full shrink-0">
-          <InputArea result={result} setResult={setResult} />
+          <Suspense fallback={null}>
+            <InputArea result={result} setResult={setResult} />
+          </Suspense>
         </div>
       </main>
 

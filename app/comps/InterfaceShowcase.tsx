@@ -129,7 +129,7 @@ export function TwitterCard({
               </Avatar>
 
               {idx !== threads.slice(1).length - 1 && (
-                <div className="w-[2px] flex-1 bg-[#2f3336] mt-1" />
+                <div className="w-0.5 flex-1 bg-[#2f3336] mt-1" />
               )}
             </div>
 

@@ -7,6 +7,7 @@ type TextResult = {
 };
 
 const MAX_CHARS = 3000;
+const GROQ_WHISPER_ENABLED = false; // Groq temporarily disabled; enable to use Groq Whisper.
 
 export async function extractTextFromFile(file: File): Promise<string> {
   const type = file.type || "";
@@ -25,7 +26,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
     const buf = await toBuffer(file);
     try {
       const parser = new PDFParse({ data: buf });
-      const out = await parser.parse();
+      const out = await parser.getText();
       const text = typeof out?.text === "string" ? out.text : "";
       return ensureText(text, name, "PDF");
     } catch (err) {
@@ -69,7 +70,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
   // Audio / Video (Groq Whisper)
   // =========================
   if (type.startsWith("audio/") || type.startsWith("video/")) {
-    if (process.env.GROQ_API_KEY) {
+    if (GROQ_WHISPER_ENABLED && process.env.GROQ_API_KEY) {
       try {
         return await groqWhisper(file);
       } catch (err) {
@@ -78,7 +79,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
       }
     }
 
-    return `Media attached: ${name} (add GROQ_API_KEY to enable transcription)`;
+    return `Media attached: ${name} (transcription not enabled)`;
   }
 
   // Presentation fallback
@@ -152,7 +153,7 @@ async function groqWhisper(file: File): Promise<string> {
   const form = new FormData();
   form.append(
     "file",
-    new File([buf], file.name, { type: file.type })
+    new File([new Uint8Array(buf)], file.name, { type: file.type })
   );
   form.append("model", "whisper-large-v3");
   form.append("response_format", "text");

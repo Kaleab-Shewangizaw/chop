@@ -21,7 +21,7 @@ type StoredEntry = {
         text: string;
         platforms: string[];
     };
-    response: unknown;
+    response: any[] | null;
     createdAt: number;
 };
 
@@ -549,7 +549,20 @@ export default function InputArea({ result, setResult }: { result: any[] | null;
                 />
                 <div className="flex justify-between p-3 border-t border-gray-700">
                     <div className="flex gap-2">
-                        <div className="flex items-center gap-3">
+                      
+                        <Select>
+                            <SelectTrigger disabled className="ml-2 bg-[#1d242b] border-[#2a2f36] hover:bg-[#2a2f36] text-gray-400 hover:text-white transition-all duration-300">
+                                <SelectValue placeholder="More options" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1d242b] border-[#2a2f36] text-gray-400">
+                                <SelectGroup>
+                                    <SelectItem value="option1">Educational</SelectItem>
+                                    <SelectItem value="option2">Entertainment</SelectItem>
+                                    <SelectItem value="option3">News</SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                          <div className="flex items-center gap-3">
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -562,7 +575,8 @@ export default function InputArea({ result, setResult }: { result: any[] | null;
                             variant="outline"
                             className="bg-gray-800 cursor-pointer text-gray-300 border-gray-700 hover:bg-gray-700 hover:text-white"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={attachments.length >= 4}
+                            // disabled={attachments.length >= 4}
+                            disabled
                         >
                            <Paperclip/>
                         </Button>
@@ -577,18 +591,6 @@ export default function InputArea({ result, setResult }: { result: any[] | null;
                         </Button>
                         
                     </div>
-                        <Select>
-                            <SelectTrigger className="ml-2 bg-[#1d242b] border-[#2a2f36] hover:bg-[#2a2f36] text-gray-400 hover:text-white transition-all duration-300">
-                                <SelectValue placeholder="More options" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#1d242b] border-[#2a2f36] text-gray-400">
-                                <SelectGroup>
-                                    <SelectItem value="option1">Educational</SelectItem>
-                                    <SelectItem value="option2">Entertainment</SelectItem>
-                                    <SelectItem value="option3">News</SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
                     </div>
                     <div>
                         <Button
