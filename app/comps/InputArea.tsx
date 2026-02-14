@@ -353,11 +353,23 @@ export default function InputArea({ result, setResult }: { result: any[] | null;
                 body: form,
             });
 
-            const data = await res.json();
-            console.log("API response", data);
-            if (!res.ok) {
-                throw new Error(data?.error || "Request failed");
+            const raw = await res.text();
+            let data: any = null;
+            try {
+                data = raw ? JSON.parse(raw) : null;
+            } catch (parseErr) {
+                console.error("Failed to parse response JSON", parseErr, raw);
             }
+
+            if (!res.ok) {
+                throw new Error(data?.error || data?.message || raw || `Request failed (${res.status})`);
+            }
+
+            if (!data) {
+                throw new Error("Empty response from server");
+            }
+
+            console.log("API response", data);
 
             const rid = data.requestId || crypto.randomUUID();
             setRequestId(rid);
@@ -373,8 +385,8 @@ export default function InputArea({ result, setResult }: { result: any[] | null;
                 createdAt: Date.now(),
             };
 
-            const raw = localStorage.getItem("chopHistory");
-            const parsed: StoredEntry[] = raw ? JSON.parse(raw) : [];
+            const historyRaw = localStorage.getItem("chopHistory");
+            const parsed: StoredEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
             const next = [entry, ...parsed.filter((e) => e.id !== entry.id)].slice(0, 50);
             localStorage.setItem("chopHistory", JSON.stringify(next));
 
