@@ -5,7 +5,7 @@ import { GrDocument, GrReddit } from "react-icons/gr";
 
 export default function Hero() {
   return (
-    <div className="flex flex-col items-center  w-full min-h-[60vh] h-auto overflow-hidden pt-0">
+    <div className="flex flex-col items-center   w-full min-h-[60vh] h-auto scrollEdit overflow-hidden pt-0">
       
       <div className="flex-1  w-full   relative">
         

@@ -124,3 +124,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ===== Modern Dark Scrollbar ===== */
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scrollEdit::-webkit-scrollbar-track {
+  background: #1a222a; /* match your app background */
+}
+
+.scrollEdit::-webkit-scrollbar-thumb {
+  background: #2f3a45; /* slightly lighter than bg */
+  border-radius: 999px;
+  border: 2px solid #1a222a; /* creates padding effect */
+  transition: background 0.3s ease;
+}
+
+.scrollEdit::-webkit-scrollbar-thumb:hover {
+  background: #3f4b57;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2f3a45 #1a222a;
+}
+
