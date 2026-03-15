@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { generatePosts, type Platform } from "@/lib/generatePost";
-import { extractTextFromFile } from "@/lib/extractText";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -53,6 +52,8 @@ export async function POST(req: Request) {
         .filter((f): f is File => f instanceof File);
 
       if (files.length > 0) {
+        // Lazy-load heavy parsers so the route can still serve text-only requests in constrained runtimes.
+        const { extractTextFromFile } = await import("@/lib/extractText");
         const extractedTexts = await Promise.all(
           files.map(async (file) => {
             const extracted = await extractTextFromFile(file);

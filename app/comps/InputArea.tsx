@@ -361,8 +361,16 @@ export default function InputArea({ result, setResult }: { result: any[] | null;
                 console.error("Failed to parse response JSON", parseErr, raw);
             }
 
+            const readableRawError = (() => {
+                if (!raw) return "";
+                const titleMatch = raw.match(/<title>(.*?)<\/title>/i);
+                if (titleMatch?.[1]) return titleMatch[1].trim();
+                if (raw.startsWith("<!DOCTYPE html")) return "Server returned an HTML error page";
+                return raw;
+            })();
+
             if (!res.ok) {
-                throw new Error(data?.error || data?.message || raw || `Request failed (${res.status})`);
+                throw new Error(data?.error || data?.message || readableRawError || `Request failed (${res.status})`);
             }
 
             if (!data) {
@@ -622,7 +630,10 @@ export default function InputArea({ result, setResult }: { result: any[] | null;
                 </div>
             </div>
             {error && (
-                <div className="mt-3 text-sm text-red-400">{error}</div>
+                <div className="mt-3 text-sm text-red-400">
+                    {/* {error} */}
+                    Something went wrong!
+                    </div>
             )}
             {!speechSupported && (
                 <div className="mt-2 text-xs text-yellow-400">Voice input not supported in this browser. Use Chrome/Edge on https or localhost.</div>
